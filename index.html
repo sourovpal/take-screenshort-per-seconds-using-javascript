@@ -1,3 +1,4 @@
+<input type="number" id="seconds" placeholder="Input Seconds" value="1">
 <button id="cake">Take Screeny</button>
 <style>
   img{
@@ -27,38 +28,42 @@ function dataURLtoFile(dataurl=null, filename='screenshort-'+new Date().getMilli
 
 
 const takeScreenShot = async () => {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: 'screen' },
-      })
-      const stopInterval = setInterval(async function(){
+  var seconds = document.getElementById('seconds').value
+  seconds = Number(seconds)*1000;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { displaySurface: 'monitor', },
+  });
 
-        const track = stream.getVideoTracks()[0]
-        const imageCapture = new ImageCapture(track)
-        const bitmap = await imageCapture.grabFrame()
-        const img = document.createElement('img') 
-        const canvas = document.createElement('canvas') 
-        canvas.width = bitmap.width
-        canvas.height = bitmap.height
-        const context = canvas.getContext('2d')
-        context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height)
-        img.src = canvas.toDataURL();
-        img.width = '400'
-        document.body.appendChild(img);
-        const file = await dataURLtoFile(canvas.toDataURL())
-        stream.getVideoTracks()[0].addEventListener('ended', () => clearInterval(stopInterval))
+  const track = stream.getVideoTracks().pop()
+  let displaySurface = track.getSettings().displaySurface;
 
-        const formData = new FormData();
+  if (displaySurface === 'monitor') {
+    const stopInterval = setInterval(async function(){
+      const imageCapture = new ImageCapture(track)
+      const bitmap = await imageCapture.grabFrame()
+      const img = document.createElement('img') 
+      const canvas = document.createElement('canvas') 
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const context = canvas.getContext('2d')
+      context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height)
+      img.src = canvas.toDataURL();
+      img.width = '400'
+      document.body.appendChild(img);
+      const file = await dataURLtoFile(canvas.toDataURL())
+      track.addEventListener('ended', () => clearInterval(stopInterval))
+      const formData = new FormData();
+      formData.append( 'screenshort', file );
+      //const rawResponse = await fetch( 'http://localhost/test/index.php', {
+      //      method: 'POST',
+      //      body: formData
+      //});
+    }, seconds)
+  }else{
+    track.stop();
+    alert('Please select your Entire Screen!');
+  }
 
-        formData.append( 'screenshort', file );
-
-        const rawResponse = await fetch( 'http://localhost/test/index.php', {
-              method: 'POST',
-              body: formData
-        });
-
-
-
-      }, 1000)
 }     
 
 const button = document.getElementById('cake').onclick = () => canIRun ? takeScreenShot() : {}
