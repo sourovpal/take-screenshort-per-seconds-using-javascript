@@ -1,0 +1,94 @@
+<input type="number" id="seconds" placeholder="Input Seconds" value="1">
+<button id="cake">Take Screeny</button>
+<style>
+  img{
+    padding:20px;
+  }
+</style>
+<br />
+
+<div id="fake"></div>
+
+<script>
+const canIRun  = navigator.mediaDevices.getDisplayMedia 
+
+function dataURLtoFile(dataurl=null, filename='screenshort-'+new Date().getMilliseconds()+'.png') {
+  var arr = dataurl.split(","),
+    mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[arr.length - 1]),
+    n = bstr.length,
+    u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+}
+
+
+
+
+const takeScreenShot = async () => {
+  var seconds = document.getElementById('seconds').value
+  seconds = Number(seconds)*1000;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { displaySurface: 'monitor', },
+  });
+  const webcam = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+
+  const track = stream.getVideoTracks().pop()
+  const trackWebcam = webcam.getVideoTracks().pop()
+  let displaySurface = track.getSettings().displaySurface;
+
+  if (displaySurface === 'monitor') {
+    const stopInterval = setInterval(async function(){
+      const imageCapture = new ImageCapture(track)
+      const bitmap = await imageCapture.grabFrame()
+      const img = document.createElement('img') 
+      
+      const canvas = document.createElement('canvas') 
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const context = canvas.getContext('2d')
+      context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height)
+      img.src = canvas.toDataURL();
+      img.width = '400'
+      document.body.appendChild(img);
+      const file = await dataURLtoFile(canvas.toDataURL())
+      track.addEventListener('ended', () => clearInterval(stopInterval))
+      const formData = new FormData();
+      formData.append( 'screenshort', file );
+      
+      const imgWebcam = document.createElement('img') 
+      const canvasWebcam = document.createElement('canvas') 
+      const contextWebcam = canvasWebcam.getContext('2d') 
+      const imageCaptureWebcam = new ImageCapture(trackWebcam)
+      const bitmapWebcam = await imageCaptureWebcam.grabFrame()
+      canvasWebcam.width = bitmapWebcam.width
+      canvasWebcam.height = bitmapWebcam.height
+      contextWebcam.drawImage(bitmapWebcam, 0, 0, bitmapWebcam.width, bitmapWebcam.height)
+      imgWebcam.src = canvasWebcam.toDataURL();
+      imgWebcam.width = '400'
+      document.body.appendChild(imgWebcam);
+
+
+
+
+      //const rawResponse = await fetch( 'http://localhost/test/index.php', {
+      //      method: 'POST',
+      //      body: formData
+      //});
+    }, seconds)
+  }else{
+    track.stop();
+    alert('Please select your Entire Screen!');
+  }
+
+}     
+
+const button = document.getElementById('cake').onclick = () => canIRun ? takeScreenShot() : {}
+
+
+
+
+
+</script>
